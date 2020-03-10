@@ -1,6 +1,6 @@
 import sys
 pthname_lst = [x for x in sys.argv if x.endswith(".pth")]
-if(len(sys.argv) < 2 or len(pthname_lst) != 1):
+if (len(sys.argv) < 2 or len(pthname_lst) != 1):
     print("python3 test_dqn_pong.py model.pth [-g]")
     exit()
 pthname = pthname_lst[0]

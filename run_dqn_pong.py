@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.autograd as autograd 
+import torch.autograd as autograd
 import torch.nn.functional as F
+
 USE_CUDA = torch.cuda.is_available()
 from dqn import QLearner, compute_td_loss, ReplayBuffer
 
@@ -30,7 +31,7 @@ model.load_state_dict(torch.load("model_pretrained.pth", map_location='cpu'))
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
 target_model.copy_from(model)
 
-optimizer = optim.Adam(model.parameters(), lr=0.00001) # FIXME: Maybe change LR?
+optimizer = optim.Adam(model.parameters(), lr=0.00001)  # FIXME: Maybe change LR?
 if USE_CUDA:
     model = model.cuda()
     target_model = target_model.cuda()
@@ -39,7 +40,8 @@ if USE_CUDA:
 epsilon_start = 1.0
 epsilon_final = 0.01
 epsilon_decay = 30000
-epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
+epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(
+    -1. * frame_idx / epsilon_decay)
 
 losses = []
 all_rewards = []
@@ -48,17 +50,17 @@ episode_reward = 0
 state = env.reset()
 
 for frame_idx in range(1, num_frames + 1):
-    #print("Frame: " + str(frame_idx))
+    # print("Frame: " + str(frame_idx))
 
     epsilon = epsilon_by_frame(frame_idx)
     action = model.act(state, epsilon)
-    
+
     next_state, reward, done, _ = env.step(action)
     replay_buffer.push(state, action, reward, next_state, done)
-    
+
     state = next_state
     episode_reward += reward
-    
+
     if done:
         state = env.reset()
         all_rewards.append((frame_idx, episode_reward))
