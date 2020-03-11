@@ -1,4 +1,5 @@
 import sys
+
 pthname_lst = [x for x in sys.argv if x.endswith(".pth")]
 if (len(sys.argv) < 2 or len(pthname_lst) != 1):
     print("python3 test_dqn_pong.py model.pth [-g]")
@@ -18,8 +19,8 @@ import torch.optim as optim
 import torch.autograd as autograd
 import torch.nn.functional as F
 import warnings
-warnings.filterwarnings("ignore")
 
+warnings.filterwarnings("ignore")
 
 USE_CUDA = torch.cuda.is_available()
 from dqn import QLearner, compute_td_loss, ReplayBuffer
@@ -42,7 +43,7 @@ if USE_CUDA:
     model = model.cuda()
     print("Using cuda")
 
-model.load_state_dict(torch.load(pthname,map_location='cpu'))
+model.load_state_dict(torch.load(pthname, map_location='cpu'))
 
 env.seed(1)
 state = env.reset()
@@ -57,7 +58,7 @@ while not done:
     action = model.act(state, 0)
 
     state, reward, done, _ = env.step(action)
-    
+
     if reward != 0:
         print(reward)
     if reward == 1:
