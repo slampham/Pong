@@ -1,14 +1,10 @@
-from Wrapper.layers import *
-from Wrapper.wrappers import make_atari, wrap_deepmind, wrap_pytorch
-import math, random
-import gym
+import math
+
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
 import torch.optim as optim
-import torch.autograd as autograd
-import torch.nn.functional as F
+
+from Wrapper.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
 USE_CUDA = torch.cuda.is_available()
 from dqn import QLearner, compute_td_loss, ReplayBuffer
@@ -23,12 +19,11 @@ env = wrap_pytorch(env)
 num_frames = 1000000    # How many frames to play
 batch_size = 32
 gamma = 0.99
-record_idx = 10000      # FIXME: UNUSED const
 
 replay_initial = 10000  # FIXME: dont know what this is
 replay_buffer = ReplayBuffer(100000)                                            # Buffer size
 model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)             # Create model
-model.load_state_dict(torch.load("model.pth", map_location='cpu'))   # FIXME: maybe change model name back to "model_pretrained.pth"?
+model.load_state_dict(torch.load("model.pth", map_location='cpu'))   # FIXME: maybe revert model name to "model_pretrained.pth"?
 
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)      # Create target model
 target_model.copy_from(model)
@@ -50,6 +45,8 @@ epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_fi
 losses = []
 all_rewards = []
 episode_reward = 0
+loss_file = open("losses.txt", 'a+')
+reward_file = open("all_rewards.txt", 'a+')
 
 state = env.reset()  # Initial state
 
@@ -60,7 +57,7 @@ for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
     action = model.act(state, epsilon)      # if (rand < e) explore. Else action w max(Q-val). action: int
 
     next_state, reward, done, _ = env.step(action)  # Get env info after taking action. next_state: 2d int. reward: float. done: bool.
-    replay_buffer.push(state, action, reward, next_state, done)  # Save next_state onto buffer (note: every frame)
+    replay_buffer.push(state, action, reward, next_state, done)  # Save state info onto buffer (note: every frame)
 
     state = next_state                      # Change to next state
     episode_reward += reward                # Keep adding rewards until goal state
@@ -77,14 +74,21 @@ for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
         optimizer.step()
         losses.append((frame_idx, loss.data.cpu().numpy()))
 
-    if frame_idx % 10000 == 0 and len(replay_buffer) <= replay_initial:  # If frames still needed in replay_buffer
-        print('#Frame: %d, preparing replay buffer' % frame_idx)
+    if frame_idx % 10000 == 0:
+        if len(replay_buffer) <= replay_initial:  # If frames still needed in replay_buffer
+            print('#Frame: %d, preparing replay buffer' % frame_idx)
 
-    if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:   # If enough frames in replay_buffer
-        print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
-        print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
+        else:                   # If enough frames in replay_buffer
+            print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
+            print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
+            print("Model saved.")
+
+            with open("losses.txt", 'a') as loss_file:
+                loss_file.write(str(np.mean(losses, 0)[1]) + ", ")
+            with open("all_rewards.txt", 'a') as reward_file:
+                reward_file.write(str(np.mean(all_rewards[-10:], 0)[1]) + ", ")
+
+            torch.save(model.state_dict(), "model.pth")  # 220000 frames saved
 
     if frame_idx % 50000 == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after 50000 frames
-        torch.save(model.state_dict(), "model.pth")
-        print("Saved model")

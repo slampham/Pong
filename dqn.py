@@ -1,10 +1,10 @@
+import random
 from collections import deque
+
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
 import torch.autograd as autograd
-import math, random
+import torch.nn as nn
 
 USE_CUDA = torch.cuda.is_available()
 Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args,
@@ -70,11 +70,11 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))    # 'done' is float to simplify Qn equation
 
-    Qn = reward + (1 - done) * gamma * torch.max(target_model(next_state), dim=1)[0]
-    Q = model(state.squeeze(1)).gather(dim=1, index=action.view(-1, 1)).flatten()
+    Qn = Variable(reward + (1 - done) * gamma * torch.max(target_model(next_state), dim=1)[0], requires_grad=True)
+    Q = Variable(model(state.squeeze(1)).gather(dim=1, index=action.view(-1, 1)).flatten(), requires_grad=True)
 
     MSE = nn.MSELoss()
-    loss = MSE(Qn, Q)
+    loss = Variable(MSE(Qn, Q), requires_grad=True)
 
     return loss
 
@@ -86,7 +86,6 @@ class ReplayBuffer(object):
     def push(self, state, action, reward, next_state, done):    # Done: bool
         state = np.expand_dims(state, 0)                # Expand row-wise
         next_state = np.expand_dims(next_state, 0)      # Expand row-wise
-
         self.buffer.append((state, action, reward, next_state, done))   # Insert tuple of Q
 
     def sample(self, batch_size):  # Initially, frame_idx = replay_buffer.len. But, sampling reduces replay_buffer size
