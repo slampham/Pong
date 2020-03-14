@@ -23,7 +23,7 @@ class QLearner(nn.Module):
         self.input_shape = self.env.observation_space.shape
         self.num_actions = self.env.action_space.n
 
-        self.features = nn.Sequential(                                  # 3 layers
+        self.features = nn.Sequential(              # Convolutional layer
             nn.Conv2d(self.input_shape[0], 32, kernel_size=8, stride=4),    # Input 1st layer
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),                 # In --> 32, Out --> 64
@@ -32,7 +32,7 @@ class QLearner(nn.Module):
             nn.ReLU()
         )
 
-        self.fc = nn.Sequential(                    # Output layer
+        self.fc = nn.Sequential(                    # Fully connected layer
             nn.Linear(self.feature_size(), 512),    # TODO: what is 'feature_size'?
             nn.ReLU(),
             nn.Linear(512, self.num_actions)        # Output num_actions
@@ -42,7 +42,7 @@ class QLearner(nn.Module):
         x = self.features(x)            # Pass in state?
         x = x.view(x.size(0), -1)       # Reshape x
         x = self.fc(x)                  # Pass in features onto last layer
-        return x
+        return x        # ret (batch_size=32, num_actions=6). shape = 2
 
     def feature_size(self):
         return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
@@ -61,18 +61,17 @@ class QLearner(nn.Module):
 
 
 def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
+    # Returns 32 in each batch!! (i.e. 32 states, 32 action...)
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
     next_state = Variable(torch.FloatTensor(np.float32(next_state)).squeeze(1), requires_grad=True)
-    action = Variable(torch.LongTensor(action))
+    action = Variable(torch.LongTensor(action))  # action / state. 32 actions / batch
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))    # 'done' is float to simplify Qn equation
 
-    # TODO: implement the loss function here
-    Qn = reward + (1 - done) * gamma * torch.max(target_model(next_state))
-
-    Q = model(state)[action]
+    Qn = reward + (1 - done) * gamma * torch.max(target_model(next_state), dim=1)[0]
+    Q = model(state.squeeze(1)).gather(dim=1, index=action.view(-1, 1)).flatten()
 
     MSE = nn.MSELoss()
     loss = MSE(Qn, Q)
@@ -92,7 +91,7 @@ class ReplayBuffer(object):
 
     def sample(self, batch_size):  # Initially, frame_idx = replay_buffer.len. But, sampling reduces replay_buffer size
         # TODO: Randomly sampling data with specific batch size from the buffer
-        batch = random.sample(self.buffer, batch_size)
+        batch = random.sample(self.buffer, batch_size)  # Batch_size = 32
 
         state = [frame[0] for frame in batch]
         action = [frame[1] for frame in batch]

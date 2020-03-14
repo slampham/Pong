@@ -28,7 +28,7 @@ record_idx = 10000      # FIXME: UNUSED const
 replay_initial = 10000  # FIXME: dont know what this is
 replay_buffer = ReplayBuffer(100000)                                            # Buffer size
 model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)             # Create model
-model.load_state_dict(torch.load("model_pretrained.pth", map_location='cpu'))   # Load model with vals
+model.load_state_dict(torch.load("model.pth", map_location='cpu'))   # FIXME: maybe change model name back to "model_pretrained.pth"?
 
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)      # Create target model
 target_model.copy_from(model)
@@ -86,5 +86,5 @@ for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
 
     if frame_idx % 50000 == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after 50000 frames
-
-    # FIXME: torch.save
+        torch.save(model.state_dict(), "model.pth")
+        print("Saved model")
