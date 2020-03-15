@@ -20,11 +20,28 @@ num_frames = 1000000    # How many frames to play
 batch_size = 32
 gamma = 0.99
 
-replay_initial = 10000  # FIXME: dont know what this is
+replay_initial = 10000  # Want enough frames in buffer
 replay_buffer = ReplayBuffer(100000)                                            # Buffer size
 model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)             # Create model
-model.load_state_dict(torch.load("model.pth", map_location='cpu'))   # FIXME: maybe revert model name to "model_pretrained.pth"?
+model.load_state_dict(torch.load("model.pth", map_location='cpu'))
 model.eval()
+
+# FIXME: REMOVE THIS ********************************************************
+def compareStateDicts(model, model_pretrained):
+    same_parameters = True
+    for param_tensor in model.state_dict():
+        if not model.state_dict()[param_tensor].equal(model_pretrained.state_dict()[param_tensor]):
+            same_parameters = False
+    if same_parameters:
+        print("Both models have state_dict")
+    else:
+        print("Models have different param_tensor")
+
+model_pretrained = QLearner(env, num_frames, batch_size, gamma, replay_buffer)
+model_pretrained.load_state_dict(torch.load("model_pretrained.pth", map_location='cpu'))
+model_pretrained.eval()
+compareStateDicts(model, model_pretrained)
+# FIXME: REMOVE THIS ********************************************************
 
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)      # Create target model
 target_model.copy_from(model)
