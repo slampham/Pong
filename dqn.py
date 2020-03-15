@@ -70,8 +70,8 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))    # 'done' is float to simplify Qn equation
 
-    Qn = Variable(reward + (1 - done) * gamma * torch.max(target_model(next_state), dim=1)[0], requires_grad=True)
-    Q = Variable(model(state.squeeze(1)).gather(dim=1, index=action.view(-1, 1)).flatten(), requires_grad=True)
+    Qn = reward + (1 - done) * gamma * torch.max(Variable(target_model(next_state)), dim=1)[0]
+    Q = Variable(model(state.squeeze(1))).gather(dim=1, index=action.view(-1, 1)).flatten()
 
     MSE = nn.MSELoss()
     loss = Variable(MSE(Qn, Q), requires_grad=True)
@@ -89,7 +89,7 @@ class ReplayBuffer(object):
         self.buffer.append((state, action, reward, next_state, done))   # Insert tuple of Q
 
     def sample(self, batch_size):  # Initially, frame_idx = replay_buffer.len. But, sampling reduces replay_buffer size
-        # TODO: Randomly sampling data with specific batch size from the buffer
+        # Randomly sampling data with specific batch size from the buffer
         batch = random.sample(self.buffer, batch_size)  # Batch_size = 32
 
         state = [frame[0] for frame in batch]

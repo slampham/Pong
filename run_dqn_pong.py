@@ -24,6 +24,7 @@ replay_initial = 10000  # FIXME: dont know what this is
 replay_buffer = ReplayBuffer(100000)                                            # Buffer size
 model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)             # Create model
 model.load_state_dict(torch.load("model.pth", map_location='cpu'))   # FIXME: maybe revert model name to "model_pretrained.pth"?
+model.eval()
 
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)      # Create target model
 target_model.copy_from(model)
@@ -39,20 +40,14 @@ if USE_CUDA:
 epsilon_start = 1.0
 epsilon_final = 0.01
 epsilon_decay = 30000
-epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(
-    -1. * frame_idx / epsilon_decay)
+epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
 
 losses = []
 all_rewards = []
 episode_reward = 0
-loss_file = open("losses.txt", 'a+')
-reward_file = open("all_rewards.txt", 'a+')
-
 state = env.reset()  # Initial state
 
 for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
-    # print("Frame: " + str(frame_idx))
-
     epsilon = epsilon_by_frame(frame_idx)   # Epsilon decreases as frames played
     action = model.act(state, epsilon)      # if (rand < e) explore. Else action w max(Q-val). action: int
 
@@ -81,14 +76,14 @@ for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
         else:                   # If enough frames in replay_buffer
             print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
             print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
-            print("Model saved.")
 
             with open("losses.txt", 'a') as loss_file:
                 loss_file.write(str(np.mean(losses, 0)[1]) + ", ")
             with open("all_rewards.txt", 'a') as reward_file:
                 reward_file.write(str(np.mean(all_rewards[-10:], 0)[1]) + ", ")
 
-            torch.save(model.state_dict(), "model.pth")  # 220000 frames saved
+            print("Model saved.")
+            torch.save(model.state_dict(), "model.pth")
 
     if frame_idx % 50000 == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after 50000 frames
