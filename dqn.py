@@ -39,7 +39,7 @@ class QLearner(nn.Module):
         )
 
     def forward(self, x):
-        x = self.features(x)            # Pass in state?
+        x = self.features(x)            # Pass in state_transition
         x = x.view(x.size(0), -1)       # Reshape x
         x = self.fc(x)                  # Pass in features onto last layer
         return x        # ret (batch_size=32, num_actions=6). shape = 2
@@ -51,7 +51,7 @@ class QLearner(nn.Module):
         if random.random() > epsilon:
             state = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=True)
             # TODO: Why self(state) calls forward()?
-            action = torch.argmax(self(state)).item()  # TODO: Given state, write code to get Q value and chosen action
+            action = torch.argmax(self(state)).item()  # Given state, write code to get Q value and chosen action
         else:
             action = random.randrange(self.env.action_space.n)
         return action
@@ -92,11 +92,11 @@ class ReplayBuffer(object):
         # Randomly sampling data with specific batch size from the buffer
         batch = random.sample(self.buffer, batch_size)  # Batch_size = 32
 
-        state = [frame[0] for frame in batch]
-        action = [frame[1] for frame in batch]
-        reward = [frame[2] for frame in batch]
-        next_state = [frame[3] for frame in batch]
-        done = [frame[4] for frame in batch]
+        state = [state_transition[0] for state_transition in batch]
+        action = [state_transition[1] for state_transition in batch]
+        reward = [state_transition[2] for state_transition in batch]
+        next_state = [state_transition[3] for state_transition in batch]
+        done = [state_transition[4] for state_transition in batch]
 
         return state, action, reward, next_state, done
 
