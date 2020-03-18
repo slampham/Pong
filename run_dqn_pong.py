@@ -10,14 +10,15 @@ from dqn import QLearner, compute_td_loss, ReplayBuffer
 
 # CONSTS
 num_frames = 1000000            # How many frames to play
-batch_size = 32
+lr = 1e-4                       # Original: 0.00001
 gamma = 0.99
-replay_initial = 10000          # Want enough frames in buffer
 epsilon_start = 1.0
-epsilon_final = 0.01
-epsilon_decay = 150000          # Originally 30,000
-lr = 1e-4
-sync_models_at_frame = 1000     # Originally 50,000
+epsilon_final = 0.01            # Originally 0.01
+epsilon_decay = 30000           # Originally 30,000
+replay_buff_size = 100000       # Originally 100,000
+replay_initial = 10000          # Want enough frames in buffer
+batch_size = 32
+sync_models_at_frame = 50000    # Originally 50,000
 
 USE_CUDA = torch.cuda.is_available()
 
@@ -27,9 +28,9 @@ env = make_atari(env_id)
 env = wrap_deepmind(env)
 env = wrap_pytorch(env)
 
-replay_buffer = ReplayBuffer(100000)                                            # Buffer size
+replay_buffer = ReplayBuffer(replay_buff_size)                                  # Buffer size
 model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)             # Create model
-model.load_state_dict(torch.load("model.pth", map_location='cpu'))
+model.load_state_dict(torch.load("model_pretrained.pth", map_location='cpu'))
 model.eval()
 
 target_model = QLearner(env, num_frames, batch_size, gamma, replay_buffer)      # Create target model
@@ -50,10 +51,12 @@ all_rewards = []
 episode_reward = 0
 state = env.reset()  # Initial state
 
-if os.path.isfile('losses.txt'):
-    os.remove('losses.txt')
-if os.path.isfile('all_rewards.txt'):
-    os.remove('all_rewards.txt')
+if os.path.isfile(f'losses_lr={lr}.txt'):
+    os.remove(f'losses_lr={lr}.txt')
+if os.path.isfile(f'all_rewards_lr={lr}.txt'):
+    os.remove(f'all_rewards_lr={lr}.txt')
+
+best_mean_reward = float('-inf')
 
 for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
     epsilon = epsilon_by_frame(frame_idx)   # Epsilon decreases as frames played
@@ -85,13 +88,14 @@ for frame_idx in range(1, num_frames + 1):  # Each frame in # frames played
             print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
             print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
 
-            with open("losses.txt", 'a') as loss_file:
+            with open(f"losses_lr={lr}.txt", 'a') as loss_file:
                 loss_file.write(str(np.mean(losses, 0)[1]) + ", ")
-            with open("all_rewards.txt", 'a') as reward_file:
+            with open(f"all_rewards_lr={lr}.txt", 'a') as reward_file:
                 reward_file.write(str(np.mean(all_rewards[-10:], 0)[1]) + ", ")
 
-            print("Model saved.")
-            torch.save(model.state_dict(), "model.pth")
+            if best_mean_reward < np.mean(all_rewards[-10:], 0)[1]:
+                best_mean_reward = np.mean(all_rewards[-10:], 0)[1]
+                torch.save(model.state_dict(), f"model_lr={lr}.pth")
 
     if frame_idx % sync_models_at_frame == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after number of frames
