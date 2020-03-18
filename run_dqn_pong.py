@@ -11,7 +11,7 @@ from dqn import QLearner, compute_td_loss, ReplayBuffer
 
 # CONSTS
 num_frames = 1000000            # How many frames to play
-lr = 5e-4                       # Original: 0.00001
+lr = 1e-3                       # Original: 0.00001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_final = 0.01            # Originally 0.01
@@ -19,8 +19,9 @@ epsilon_decay = 50000           # Originally 30,000
 replay_buff_size = 100000       # Originally 100,000
 replay_initial = 10000          # Want enough frames in buffer
 batch_size = 32
-sync_models_at_frame = 10000    # Originally 50,000
+sync_models_at_frame = 1000    # Originally 50,000
 starting_frame = 1
+
 
 def plot_model(losses, all_rewards):
     plt.figure(1)
@@ -106,7 +107,7 @@ for frame_idx in range(starting_frame, num_frames + 1):  # Each frame in # frame
 
             if best_mean_reward < np.mean(all_rewards[-10:], 0)[1]:
                 best_mean_reward = np.mean(all_rewards[-10:], 0)[1]
-                torch.save(model.state_dict(), f"model_r={best_mean_reward}_f={starting_frame}.pth")
+                torch.save(model.state_dict(), f"model_r={best_mean_reward}_f={frame_idx}.pth")
 
     if frame_idx % sync_models_at_frame == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after number of frames
