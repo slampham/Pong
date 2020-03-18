@@ -70,10 +70,9 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))    # 'done' is float to simplify Qn equation
 
-    Q = Variable(model(state.squeeze(1)).gather(dim=1, index=action.unsqueeze(1)).squeeze(1))
-    Qn = Variable(reward + (1 - done) * gamma * target_model(next_state).max(dim=1)[0].detach())
-
-    loss = Variable(nn.MSELoss()(Qn, Q), requires_grad=True)  # FIXME: not sure if requires_grad?
+    Q = model(state.squeeze(1)).gather(dim=1, index=action.unsqueeze(1)).squeeze(1)
+    Qn = reward + (1 - done) * gamma * target_model(next_state).max(dim=1)[0].detach()
+    loss = nn.MSELoss()(Qn, Q)       # FIXME: not sure if requires_grad?
 
     return loss
 

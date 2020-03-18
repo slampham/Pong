@@ -11,16 +11,29 @@ from dqn import QLearner, compute_td_loss, ReplayBuffer
 
 # CONSTS
 num_frames = 1000000            # How many frames to play
-lr = 1e-4                       # Original: 0.00001
+lr = 5e-4                       # Original: 0.00001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_final = 0.01            # Originally 0.01
-epsilon_decay = 30000           # Originally 30,000
+epsilon_decay = 50000           # Originally 30,000
 replay_buff_size = 100000       # Originally 100,000
 replay_initial = 10000          # Want enough frames in buffer
 batch_size = 32
-sync_models_at_frame = 50000    # Originally 50,000
+sync_models_at_frame = 10000    # Originally 50,000
 starting_frame = 1
+
+def plot_model(losses, all_rewards):
+    plt.figure(1)
+    plt.plot([loss[0] for loss in losses], [loss[1] for loss in losses])
+    plt.xlabel('Frame #')
+    plt.ylabel('Losses')
+    plt.savefig(f'losses_lr={lr}.pdf')
+
+    plt.figure(2)
+    plt.plot([reward[0] for reward in all_rewards], [reward[1] for reward in all_rewards])
+    plt.xlabel('Frame #')
+    plt.ylabel('Episode Reward')
+    plt.savefig(f'rewards_lr={lr}.pdf')
 
 USE_CUDA = torch.cuda.is_available()
 
@@ -55,12 +68,10 @@ state = env.reset()  # Initial state
 
 if os.path.isfile(f'losses_lr={lr}.pdf'):
     os.remove(f'losses_lr={lr}.pdf')
-if os.path.isfile(f'all_rewards_lr={lr}.pdf'):
-    os.remove(f'all_rewards_lr={lr}.pdf')
+if os.path.isfile(f'rewards_lr={lr}.pdf'):
+    os.remove(f'rewards_lr={lr}.pdf')
 
 best_mean_reward = float('-inf')
-losses_plt = []
-rewards_plt = []
 
 for frame_idx in range(starting_frame, num_frames + 1):  # Each frame in # frames played
     epsilon = epsilon_by_frame(frame_idx)   # Epsilon decreases as frames played
@@ -91,21 +102,11 @@ for frame_idx in range(starting_frame, num_frames + 1):  # Each frame in # frame
         else:                   # If enough frames in replay_buffer
             print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
             print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
-
-            losses_plt.append(np.mean(losses, 0)[1])
-            rewards_plt.append(np.mean(all_rewards[-10:], 0)[1])
-
-            plt.figure(1)
-            plt.plot(frame_idx, losses_plt)
-            plt.savefig(f'losses_lr={lr}.pdf')
-
-            plt.figure(2)
-            plt.plot(frame_idx, rewards_plt)
-            plt.savefig(f'all_rewards_lr={lr}.pdf')
+            plot_model(losses, all_rewards)
 
             if best_mean_reward < np.mean(all_rewards[-10:], 0)[1]:
                 best_mean_reward = np.mean(all_rewards[-10:], 0)[1]
-                torch.save(model.state_dict(), f"model_lr={lr}_f={starting_frame}.pth")
+                torch.save(model.state_dict(), f"model_r={best_mean_reward}_f={starting_frame}.pth")
 
     if frame_idx % sync_models_at_frame == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after number of frames
