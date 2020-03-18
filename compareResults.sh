@@ -1,4 +1,4 @@
-MODEL_OUT="$(python test_dqn_pong.py model.pth)"
+MODEL_OUT="$(python test_dqn_pong.py model_lr=0.001.pth)"
 MODEL_PRETRAINED_OUT="$(python test_dqn_pong.py model_pretrained.pth)"
 
 if [ "$MODEL_OUT" == "$MODEL_PRETRAINED_OUT" ]; then

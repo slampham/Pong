@@ -61,21 +61,23 @@ class QLearner(nn.Module):
 
 
 def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
-    # Returns 32 in each batch!! (i.e. 32 states, 32 action...)
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
-    next_state = Variable(torch.FloatTensor(np.float32(next_state)).squeeze(1), requires_grad=True)
-    action = Variable(torch.LongTensor(action))  # action / state. 32 actions / batch
+    next_state = Variable(torch.FloatTensor(np.float32(next_state)))
+    action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
-    done = Variable(torch.FloatTensor(done))    # 'done' is float to simplify Qn equation
+    done = Variable(torch.FloatTensor(done))
 
-    Q = model(state.squeeze(1)).gather(dim=1, index=action.unsqueeze(1)).squeeze(1)
-    Qn = reward + (1 - done) * gamma * target_model(next_state).max(dim=1)[0].detach()
-    loss = nn.MSELoss()(Qn, Q)       # FIXME: not sure if requires_grad?
+    q_values = model(state)
+    next_q_values = model(next_state)
 
+    q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
+    next_q_value = next_q_values.max(1)[0]
+    expected_q_value = reward + gamma * next_q_value * (1 - done)
+
+    loss = (q_value - Variable(expected_q_value.data)).pow(2).mean()
     return loss
-
 
 class ReplayBuffer(object):
     def __init__(self, capacity):
@@ -88,15 +90,8 @@ class ReplayBuffer(object):
 
     def sample(self, batch_size):  # Initially, frame_idx = replay_buffer.len. But, sampling reduces replay_buffer size
         # Randomly sampling data with specific batch size from the buffer
-        batch = random.sample(self.buffer, batch_size)  # Batch_size = 32
-
-        state = [state_transition[0] for state_transition in batch]
-        action = [state_transition[1] for state_transition in batch]
-        reward = [state_transition[2] for state_transition in batch]
-        next_state = [state_transition[3] for state_transition in batch]
-        done = [state_transition[4] for state_transition in batch]
-
-        return state, action, reward, next_state, done
+        state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
+        return np.concatenate(state), action, reward, np.concatenate(next_state), done
 
     def __len__(self):
         return len(self.buffer)

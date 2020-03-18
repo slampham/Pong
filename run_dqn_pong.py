@@ -11,15 +11,15 @@ from dqn import QLearner, compute_td_loss, ReplayBuffer
 
 # CONSTS
 num_frames = 1000000            # How many frames to play
-lr = 1e-3                       # Original: 0.00001
+lr = 5e-4                       # Original: 0.00001
 gamma = 0.99
 epsilon_start = 1.0
 epsilon_final = 0.01            # Originally 0.01
-epsilon_decay = 50000           # Originally 30,000
+epsilon_decay = 30000           # Originally 30,000
 replay_buff_size = 100000       # Originally 100,000
 replay_initial = 10000          # Want enough frames in buffer
 batch_size = 32
-sync_models_at_frame = 1000    # Originally 50,000
+sync_models_at_frame = 10000    # Originally 50,000
 starting_frame = 1
 
 
