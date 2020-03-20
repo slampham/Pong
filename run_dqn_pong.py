@@ -1,5 +1,4 @@
 import math
-import os
 
 import numpy as np
 import torch
@@ -67,13 +66,7 @@ all_rewards = []
 episode_reward = 0
 state = env.reset()  # Initial state
 
-if os.path.isfile(f'losses_lr={lr}.pdf'):
-    os.remove(f'losses_lr={lr}.pdf')
-if os.path.isfile(f'rewards_lr={lr}.pdf'):
-    os.remove(f'rewards_lr={lr}.pdf')
-
 best_mean_reward = float('-inf')
-
 for frame_idx in range(starting_frame, num_frames + 1):  # Each frame in # frames played
     epsilon = epsilon_by_frame(frame_idx)   # Epsilon decreases as frames played
     action = model.act(state, epsilon)      # if (rand < e) explore. Else action w max(Q-val). action: int
@@ -107,7 +100,7 @@ for frame_idx in range(starting_frame, num_frames + 1):  # Each frame in # frame
 
             if best_mean_reward < np.mean(all_rewards[-10:], 0)[1]:
                 best_mean_reward = np.mean(all_rewards[-10:], 0)[1]
-                torch.save(model.state_dict(), f"model_r={best_mean_reward}_f={frame_idx}.pth")
+                torch.save(model.state_dict(), f"models/model_r={best_mean_reward}_f={frame_idx}.pth")
 
     if frame_idx % sync_models_at_frame == 0:
         target_model.copy_from(model)       # Copy model's weights onto target after number of frames
