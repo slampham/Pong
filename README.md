@@ -3,11 +3,6 @@
 
 [comment]: # (put example screenshot here)
 
-## Table of contents
-* [ML Topics Used](#ml-topics-used)
-* [Background](#background)
-* [Contact](#contact)
-
 ## ML Topics Used
 * **Algorithm**: Q-learning
 * **Technologies**: PyTorch, OpenAI Gym
