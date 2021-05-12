@@ -1,7 +1,7 @@
 # Pong
 > Use reinforcement learning in order to show a bot how to play Pong!
 
-![Example screenshot](./plots/P6-tSNE-Stress.png)
+[comment]: # (![Example screenshot](./plots/P6-tSNE-Stress.png))
 
 ## Table of contents
 * [ML Topics Used](#ml-topics-used)
