@@ -1,7 +1,7 @@
 # Pong
 > Use reinforcement learning in order to show a bot how to play Pong!
 
-[comment]: # (put example screenshot here)
+![Trained Model](trained_model.gif)
 
 ## ML Topics Used
 * **Algorithm**: Q-learning

@@ -7,9 +7,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 
 USE_CUDA = torch.cuda.is_available()
-Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args,
-                                                                                                                **kwargs)
-
+Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 class QLearner(nn.Module):
     def __init__(self, env, num_frames, batch_size, gamma, replay_buffer):
@@ -50,7 +48,6 @@ class QLearner(nn.Module):
     def act(self, state, epsilon):  # Neg exp curve. Start exploring then exploit
         if random.random() > epsilon:
             state = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=True)
-            # TODO: Why self(state) calls forward()?
             action = torch.argmax(self.forward(state)).item()  # Given state, write code to get Q value and chosen action
         else:
             action = random.randrange(self.env.action_space.n)
@@ -72,7 +69,7 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
 
     Q = model(state.squeeze(1)).gather(dim=1, index=action.view(-1, 1)).flatten()
     Qn = reward + (1 - done) * gamma * target_model(next_state).max(dim=1)[0].detach()
-    loss = nn.MSELoss()(Qn, Q)       # FIXME: not sure if requires Variable()? i.e. GPU
+    loss = nn.MSELoss()(Qn, Q)
 
     return loss
 
